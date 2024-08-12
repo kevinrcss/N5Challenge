@@ -9,7 +9,6 @@ using N5Challenge.Core.Interfaces;
 using N5Challenge.Infrastructure.Kafka;
 using N5Challenge.Infrastructure.Services;
 using N5Challenge.Infrastructure.Settings;
-using System.Text.Json;
 
 namespace N5Challenge.Application.Services
 {
@@ -55,7 +54,7 @@ namespace N5Challenge.Application.Services
 
                 // Enviar mensaje a Kafka
                 var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
-                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), JsonSerializer.Serialize(kafkaMessage));
+                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
 
                 var resultDto = _mapper.Map<PermissionDto>(permission);
                 return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
@@ -86,6 +85,9 @@ namespace N5Challenge.Application.Services
                 // Update in Elasticsearch
                 await _elasticsearchService.UpdatePermissionAsync(permission);
 
+                var kafkaMessage = new { Id = Guid.NewGuid(), Name = "modify", Permission = permission };
+                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
+
                 var resultDto = _mapper.Map<PermissionDto>(permission);
                 return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
             }
@@ -108,6 +110,14 @@ namespace N5Challenge.Application.Services
                 {
                      permissions = await _elasticsearchService.GetAllPermissionsAsync();
                 }
+
+                var kafkaMessage = new
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "get",
+                    Count = permissions.ToList().Count
+                };
+                await _kafkaProducer.ProduceAsync(_kafkaTopic, "get_all", kafkaMessage);
 
                 var resultDto = _mapper.Map<IEnumerable<PermissionDto>>(permissions);
                 return Result<IEnumerable<PermissionDto>>.Ok(resultDto, Messages.GENERAL_OK);

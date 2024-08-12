@@ -1,6 +1,7 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using N5Challenge.Infrastructure.Settings;
+using System.Text.Json;
 
 namespace N5Challenge.Infrastructure.Kafka
 {
@@ -13,12 +14,11 @@ namespace N5Challenge.Infrastructure.Kafka
             _config = new ProducerConfig { BootstrapServers = kafkaSettings.Value.BootstrapServers };
         }
 
-        public async Task ProduceAsync(string topic, string key, string value)
+        public async Task ProduceAsync<T>(string topic, string key, T value)
         {
-            using (var producer = new ProducerBuilder<string, string>(_config).Build())
-            {
-                await producer.ProduceAsync(topic, new Message<string, string> { Key = key, Value = value });
-            }
+            using var producer = new ProducerBuilder<string, string>(_config).Build();
+            var serializedValue = JsonSerializer.Serialize(value);
+            await producer.ProduceAsync(topic, new Message<string, string> { Key = key, Value = serializedValue });
         }
     }
 }
