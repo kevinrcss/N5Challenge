@@ -115,7 +115,7 @@ namespace N5Challenge.Application.Services
                 {
                     Id = Guid.NewGuid(),
                     Name = "get",
-                    Count = permissions.ToList().Count
+                    Count = permissions.Count()
                 };
                 await _kafkaProducer.ProduceAsync(_kafkaTopic, "get_all", kafkaMessage);
 

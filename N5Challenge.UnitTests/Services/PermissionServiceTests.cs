@@ -139,6 +139,11 @@ namespace N5Challenge.UnitTests.Services
                 new PermissionDto { Id = 2, EmployeeName = "Jane", EmployeeLastName = "Doe", PermissionTypeId = 2, PermissionDate = DateTime.Now }
             };
 
+            var mockPermissionRepository = new Mock<IRepository<Permission>>();
+            mockPermissionRepository.Setup(repo => repo.GetAllAsync()).ReturnsAsync(permissions);
+
+            _mockUnitOfWork.Setup(uow => uow.Permissions).Returns(mockPermissionRepository.Object);
+
             _mockElasticsearchService.Setup(es => es.GetAllPermissionsAsync()).ReturnsAsync(permissions);
             _mockMapper.Setup(m => m.Map<IEnumerable<PermissionDto>>(It.IsAny<IEnumerable<Permission>>())).Returns(permissionDtos);
 
