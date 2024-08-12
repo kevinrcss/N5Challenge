@@ -42,6 +42,7 @@ namespace N5Challenge.Application.Services
             try
             {
                 var permission = _mapper.Map<Permission>(permissionDto);
+
                 await _unitOfWork.Permissions.AddAsync(permission);
                 await _unitOfWork.SaveChangesAsync();
 
@@ -78,17 +79,12 @@ namespace N5Challenge.Application.Services
                 }
 
                 _mapper.Map(permissionDto, permission);
+
                 _unitOfWork.Permissions.Update(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                #region Elasticsearch
-                var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
-                if (!indexed)
-                {
-                    _logger.LogWarning("Failed to update permission in Elasticsearch. ID: {PermissionId}", permission.Id);
-                }
-
-                #endregion
+                // Update in Elasticsearch
+                await _elasticsearchService.UpdatePermissionAsync(permission);
 
                 var resultDto = _mapper.Map<PermissionDto>(permission);
                 return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
@@ -99,12 +95,19 @@ namespace N5Challenge.Application.Services
                 return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }
         }
-        public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync()
+        public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync(string searchTerm = null)
         {
             try
             {
-                //var permissions = await _unitOfWork.Permissions.GetAllAsync();
-                var permissions = await _elasticsearchService.GetAllPermissionsAsync();
+                IEnumerable<Permission> permissions;
+                if (string.IsNullOrEmpty(searchTerm))
+                {
+                    permissions = await _unitOfWork.Permissions.GetAllAsync();
+                }
+                else
+                {
+                     permissions = await _elasticsearchService.GetAllPermissionsAsync();
+                }
 
                 var resultDto = _mapper.Map<IEnumerable<PermissionDto>>(permissions);
                 return Result<IEnumerable<PermissionDto>>.Ok(resultDto, Messages.GENERAL_OK);

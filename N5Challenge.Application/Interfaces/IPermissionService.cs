@@ -7,7 +7,7 @@ namespace N5Challenge.Application.Interfaces
     {
         Task<Result<PermissionDto>> RequestPermissionAsync(PermissionDto permissionDto);
         Task<Result<PermissionDto>> ModifyPermissionAsync(PermissionDto permissionDto);
-        Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync();
         Task<Result<PermissionDto>> GetPermissionByIdAsync(int id);
+        Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync(string searchTerm = null);
     }
 }

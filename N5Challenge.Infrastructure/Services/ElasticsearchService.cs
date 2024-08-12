@@ -33,6 +33,14 @@ namespace N5Challenge.Infrastructure.Services
             return response.Source;
         }
 
+        public async Task<bool> UpdatePermissionAsync(Permission permission)
+        {
+            var response = await _elasticClient.UpdateAsync<Permission>(permission.Id, u => u
+                .Doc(permission)
+                .DocAsUpsert());
+            return response.IsValid;
+        }
+
         public async Task<bool> IndexPermissionAsync(Permission permission)
         {
             var response = await _elasticClient.IndexDocumentAsync(permission);

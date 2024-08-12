@@ -38,9 +38,9 @@ namespace N5Challenge.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPermissions()
+        public async Task<IActionResult> GetPermissions([FromQuery] string searchTerm)
         {
-            var result = await _permissionService.GetPermissionsAsync();
+            var result = await _permissionService.GetPermissionsAsync(searchTerm);
             if (result.Success)
             {
                 return Ok(result);
