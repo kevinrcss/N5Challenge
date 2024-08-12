@@ -1,4 +1,4 @@
-﻿namespace N5Challenge.Application.Models
+﻿namespace N5Challenge.Core.Entities
 {
     public class Permission
     {

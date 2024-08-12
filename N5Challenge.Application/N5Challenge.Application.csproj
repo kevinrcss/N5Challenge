@@ -11,4 +11,10 @@
     <ProjectReference Include="..\N5Challenge.Infrastructure\N5Challenge.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOs\" />
+    <Folder Include="Interfaces\" />
+    <Folder Include="Services\" />
+  </ItemGroup>
+
 </Project>
