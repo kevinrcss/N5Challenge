@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\N5Challenge.Core\N5Challenge.Core.csproj" />
+    <ProjectReference Include="..\N5Challenge.Infrastructure\N5Challenge.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
