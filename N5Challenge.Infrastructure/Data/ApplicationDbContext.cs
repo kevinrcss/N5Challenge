@@ -21,5 +21,37 @@ namespace N5Challenge.Infrastructure.Data
                 .WithMany(pt => pt.Permissions)
                 .HasForeignKey(p => p.PermissionTypeId);
         }
+
+        #region Data Seeding
+        private void SeedData(ModelBuilder modelBuilder)
+        {
+            // Seed PermissionTypes
+            modelBuilder.Entity<PermissionType>().HasData(
+                new PermissionType { Id = 1, Description = "Vacaciones" },
+                new PermissionType { Id = 2, Description = "Permiso médico" },
+                new PermissionType { Id = 3, Description = "Día personal" }
+            );
+
+            // Seed Permissions
+            modelBuilder.Entity<Permission>().HasData(
+                new Permission
+                {
+                    Id = 1,
+                    EmployeeName = "John",
+                    EmployeeLastName = "Doe",
+                    PermissionTypeId = 1,
+                    PermissionDate = DateTime.Now.AddDays(-5)
+                },
+                new Permission
+                {
+                    Id = 2,
+                    EmployeeName = "Jane",
+                    EmployeeLastName = "Smith",
+                    PermissionTypeId = 2,
+                    PermissionDate = DateTime.Now.AddDays(-2)
+                }
+            );
+        }
+        #endregion
     }
 }

@@ -1,10 +1,15 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using N5Challenge.Application.Common;
 using N5Challenge.Application.DTOs;
 using N5Challenge.Application.Interfaces;
 using N5Challenge.Core.Entities;
 using N5Challenge.Core.Interfaces;
+using N5Challenge.Infrastructure.Kafka;
+using N5Challenge.Infrastructure.Services;
+using N5Challenge.Infrastructure.Settings;
+using System.Text.Json;
 
 namespace N5Challenge.Application.Services
 {
@@ -13,12 +18,23 @@ namespace N5Challenge.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<PermissionService> _logger;
+        private readonly IElasticsearchService _elasticsearchService;
+        private readonly IKafkaProducer _kafkaProducer;
+        private readonly string _kafkaTopic;
 
-        public PermissionService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<PermissionService> logger)
+        public PermissionService(IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<PermissionService> logger,
+            IElasticsearchService elasticsearchService,
+            IKafkaProducer kafkaProducer,
+            IOptions<KafkaSettings> kafkaSettings)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _elasticsearchService = elasticsearchService;
+            _kafkaProducer = kafkaProducer;
+            _kafkaTopic = kafkaSettings.Value.Topic;
         }
 
         public async Task<Result<PermissionDto>> RequestPermissionAsync(PermissionDto permissionDto)
@@ -28,6 +44,18 @@ namespace N5Challenge.Application.Services
                 var permission = _mapper.Map<Permission>(permissionDto);
                 await _unitOfWork.Permissions.AddAsync(permission);
                 await _unitOfWork.SaveChangesAsync();
+
+                // Indexar en Elasticsearch
+                var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
+                if (!indexed)
+                {
+                    _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
+                }
+
+                // Enviar mensaje a Kafka
+                var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
+                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), JsonSerializer.Serialize(kafkaMessage));
+
                 var resultDto = _mapper.Map<PermissionDto>(permission);
                 return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
 
@@ -52,6 +80,16 @@ namespace N5Challenge.Application.Services
                 _mapper.Map(permissionDto, permission);
                 _unitOfWork.Permissions.Update(permission);
                 await _unitOfWork.SaveChangesAsync();
+
+                #region Elasticsearch
+                var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
+                if (!indexed)
+                {
+                    _logger.LogWarning("Failed to update permission in Elasticsearch. ID: {PermissionId}", permission.Id);
+                }
+
+                #endregion
+
                 var resultDto = _mapper.Map<PermissionDto>(permission);
                 return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
             }
@@ -63,22 +101,11 @@ namespace N5Challenge.Application.Services
         }
         public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync()
         {
-            #region WithOutAutoMapper
-            //var permissions = await _unitOfWork.Permissions.GetAllAsync();
-            //return permissions.Select(p => new PermissionDto
-            //{
-            //    Id = p.Id,
-            //    EmployeeName = p.EmployeeName,
-            //    EmployeeLastName = p.EmployeeLastName,
-            //    PermissionTypeId = p.PermissionTypeId,
-            //    PermissionDate = p.PermissionDate
-            //});
-
-            #endregion
-
             try
             {
-                var permissions = await _unitOfWork.Permissions.GetAllAsync();
+                //var permissions = await _unitOfWork.Permissions.GetAllAsync();
+                var permissions = await _elasticsearchService.GetAllPermissionsAsync();
+
                 var resultDto = _mapper.Map<IEnumerable<PermissionDto>>(permissions);
                 return Result<IEnumerable<PermissionDto>>.Ok(resultDto, Messages.GENERAL_OK);
             }
@@ -91,24 +118,10 @@ namespace N5Challenge.Application.Services
 
         public async Task<Result<PermissionDto>> GetPermissionByIdAsync(int id)
         {
-            #region WithOutAutoMapper
-            //var permission = await _unitOfWork.Permissions.GetByIdAsync(id);
-            //if (permission == null)
-            //    return null;
-
-            //return new PermissionDto
-            //{
-            //    Id = permission.Id,
-            //    EmployeeName = permission.EmployeeName,
-            //    EmployeeLastName = permission.EmployeeLastName,
-            //    PermissionTypeId = permission.PermissionTypeId,
-            //    PermissionDate = permission.PermissionDate
-            //};
-
-            #endregion
             try
             {
-                var permission = await _unitOfWork.Permissions.GetByIdAsync(id);
+                //var permission = await _unitOfWork.Permissions.GetByIdAsync(id);
+                var permission = await _elasticsearchService.GetPermissionAsync(id);
                 if (permission == null)
                 {
                     return Result<PermissionDto>.Fail(Messages.GENERAL_NOT_FOUND);
