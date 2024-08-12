@@ -7,14 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\N5Challenge.Core\N5Challenge.Core.csproj" />
-    <ProjectReference Include="..\N5Challenge.Infrastructure\N5Challenge.Infrastructure.csproj" />
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-    <Folder Include="Interfaces\" />
-    <Folder Include="Services\" />
+    <ProjectReference Include="..\N5Challenge.Core\N5Challenge.Core.csproj" />
+    <ProjectReference Include="..\N5Challenge.Infrastructure\N5Challenge.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
