@@ -97,7 +97,7 @@ namespace N5Challenge.Application.Services
                 return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }
         }
-        public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync(string searchTerm = null)
+        public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync(string? searchTerm = null)
         {
             try
             {
