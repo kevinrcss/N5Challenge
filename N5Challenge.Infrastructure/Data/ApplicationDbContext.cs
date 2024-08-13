@@ -30,7 +30,6 @@ namespace N5Challenge.Infrastructure.Data
         #region Data Seeding
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Seed PermissionTypes
             modelBuilder.Entity<PermissionType>().HasData(
                 new PermissionType { Id = 1, Description = "Vacaciones" },
                 new PermissionType { Id = 2, Description = "Permiso médico" },
@@ -39,7 +38,6 @@ namespace N5Challenge.Infrastructure.Data
                 new PermissionType { Id = 5, Description = "Licencia por paternidad/maternidad" }
             );
 
-            // Seed Permissions
             modelBuilder.Entity<Permission>().HasData(
                 new Permission
                 {

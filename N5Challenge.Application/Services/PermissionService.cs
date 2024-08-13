@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using N5Challenge.Application.Common;
-using N5Challenge.Application.DTOs;
+using N5Challenge.Application.DTOs.Permission;
 using N5Challenge.Application.Interfaces;
 using N5Challenge.Core.Entities;
 using N5Challenge.Core.Interfaces;
@@ -36,7 +36,7 @@ namespace N5Challenge.Application.Services
             _kafkaTopic = kafkaSettings.Value.Topic;
         }
 
-        public async Task<Result<PermissionDto>> RequestPermissionAsync(PermissionDto permissionDto)
+        public async Task<Result<PermissionDto>> RequestPermissionAsync(PermissionCreateDto permissionDto)
         {
             try
             {
@@ -45,14 +45,12 @@ namespace N5Challenge.Application.Services
                 await _unitOfWork.Permissions.AddAsync(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Indexar en Elasticsearch
                 var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
                 if (!indexed)
                 {
                     _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
                 }
 
-                // Enviar mensaje a Kafka
                 var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
                 await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
 
@@ -62,7 +60,7 @@ namespace N5Challenge.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
                 return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }            
         }
@@ -82,7 +80,6 @@ namespace N5Challenge.Application.Services
                 _unitOfWork.Permissions.Update(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Update in Elasticsearch
                 await _elasticsearchService.UpdatePermissionAsync(permission);
 
                 var kafkaMessage = new { Id = Guid.NewGuid(), Name = "modify", Permission = permission };
@@ -93,7 +90,7 @@ namespace N5Challenge.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
                 return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }
         }
@@ -124,7 +121,7 @@ namespace N5Challenge.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
                 return Result<IEnumerable<PermissionDto>>.Fail(Messages.GENERAL_ERROR);
             }            
         }
@@ -145,7 +142,7 @@ namespace N5Challenge.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message, id);
+                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
                 return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }
             

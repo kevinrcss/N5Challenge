@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using N5Challenge.Application.DTOs;
+using N5Challenge.Application.DTOs.Permission;
+using N5Challenge.Application.DTOs.PermissionType;
 using N5Challenge.Core.Entities;
 
 namespace N5Challenge.Application.Mappings
@@ -9,6 +10,7 @@ namespace N5Challenge.Application.Mappings
         public MappingProfile()
         {
             CreateMap<Permission, PermissionDto>().ReverseMap();
+            CreateMap<PermissionCreateDto, Permission>();
             CreateMap<PermissionType, PermissionTypeDto>().ReverseMap();
         }
     }

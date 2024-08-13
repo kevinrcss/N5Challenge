@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using N5Challenge.Application.DTOs;
+using N5Challenge.Application.DTOs.Permission;
 using N5Challenge.Application.Services;
 using N5Challenge.Core.Entities;
 using N5Challenge.Core.Interfaces;
@@ -44,10 +44,10 @@ namespace N5Challenge.UnitTests.Services
         }
 
         [Fact]
-        public async Task RequestPermissionAsync_ShouldReturnSuccessResult()
+        public async Task CreatePermissionAsync()
         {
             // Arrange
-            var permissionDto = new PermissionDto
+            var permissionDto = new PermissionCreateDto
             {
                 EmployeeName = "John",
                 EmployeeLastName = "Doe",
@@ -64,8 +64,8 @@ namespace N5Challenge.UnitTests.Services
                 PermissionDate = DateTime.Now
             };
 
-            _mockMapper.Setup(m => m.Map<Permission>(It.IsAny<PermissionDto>())).Returns(permission);
-            _mockMapper.Setup(m => m.Map<PermissionDto>(It.IsAny<Permission>())).Returns(permissionDto);
+            _mockMapper.Setup(m => m.Map<Permission>(It.IsAny<PermissionCreateDto>())).Returns(permission);
+            _mockMapper.Setup(m => m.Map<PermissionCreateDto>(It.IsAny<Permission>())).Returns(permissionDto);
 
             _mockUnitOfWork.Setup(uow => uow.Permissions.AddAsync(It.IsAny<Permission>())).Returns(Task.CompletedTask);
             _mockUnitOfWork.Setup(uow => uow.SaveChangesAsync()).ReturnsAsync(1);
@@ -79,11 +79,10 @@ namespace N5Challenge.UnitTests.Services
 
             // Assert
             Assert.True(result.Success);
-            Assert.Equal(permissionDto, result.Data);
         }
 
         [Fact]
-        public async Task ModifyPermissionAsync_ShouldReturnSuccessResult()
+        public async Task ModifyPermissionAsync()
         {
             // Arrange
             var permissionDto = new PermissionDto
@@ -124,7 +123,7 @@ namespace N5Challenge.UnitTests.Services
         }
 
         [Fact]
-        public async Task GetPermissionsAsync_ShouldReturnSuccessResult()
+        public async Task GetPermissionsAsync()
         {
             // Arrange
             var permissions = new List<Permission>

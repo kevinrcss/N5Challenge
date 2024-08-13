@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using N5Challenge.Application.DTOs;
+using N5Challenge.Application.DTOs.Permission;
 using N5Challenge.Application.Interfaces;
 
 namespace N5Challenge.API.Controllers
@@ -15,8 +15,8 @@ namespace N5Challenge.API.Controllers
             _permissionService = permissionService;
         }
 
-        [HttpPost("request")]
-        public async Task<IActionResult> RequestPermission(PermissionDto permissionDto)
+        [HttpPost]
+        public async Task<IActionResult> RequestPermission(PermissionCreateDto permissionDto)
         {
             var result = await _permissionService.RequestPermissionAsync(permissionDto);
             if (result.Success) 
@@ -26,9 +26,11 @@ namespace N5Challenge.API.Controllers
             return BadRequest(result);
         }
 
-        [HttpPut("modify")]
-        public async Task<IActionResult> ModifyPermission(PermissionDto permissionDto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ModifyPermission(int id, [FromBody] PermissionDto permissionDto)
         {
+            if (id != permissionDto.Id){ return BadRequest(); }
+
             var result = await _permissionService.ModifyPermissionAsync(permissionDto);
             if (result.Success)
             {

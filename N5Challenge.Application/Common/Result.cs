@@ -2,10 +2,10 @@
 {
     public class Result<T>
     {
-        public bool Success { get; }
-        public string Message { get; }
-        public T Data { get; }
-
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public T Data { get; set; }
+        public Result(){}
         private Result(bool success, string message, T data)
         {
             Success = success;

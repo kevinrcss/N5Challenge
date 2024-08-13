@@ -1,4 +1,4 @@
-﻿namespace N5Challenge.Application.DTOs
+﻿namespace N5Challenge.Application.DTOs.Permission
 {
     public class PermissionDto
     {
