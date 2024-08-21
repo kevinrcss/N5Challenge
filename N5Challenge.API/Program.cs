@@ -59,6 +59,7 @@ namespace N5Challenge.API
 
             // Application Services
             builder.Services.AddScoped<IPermissionService, PermissionService>();
+            builder.Services.AddScoped<IPermissionTypeServices, PermissionTypeServices>();
 
             builder.Services.AddControllers();
 

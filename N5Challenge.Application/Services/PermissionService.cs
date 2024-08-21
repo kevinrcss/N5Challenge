@@ -21,6 +21,7 @@ namespace N5Challenge.Application.Services
         private readonly IKafkaProducer _kafkaProducer;
         private readonly string _kafkaTopic;
 
+        #region Constructor
         public PermissionService(IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<PermissionService> logger,
@@ -35,9 +36,11 @@ namespace N5Challenge.Application.Services
             _kafkaProducer = kafkaProducer;
             _kafkaTopic = kafkaSettings.Value.Topic;
         }
+        #endregion
 
         public async Task<Result<PermissionDto>> RequestPermissionAsync(PermissionCreateDto permissionDto)
         {
+            Result<PermissionDto> result = new();
             try
             {
                 var permission = _mapper.Map<Permission>(permissionDto);
@@ -45,34 +48,43 @@ namespace N5Challenge.Application.Services
                 await _unitOfWork.Permissions.AddAsync(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
-                if (!indexed)
-                {
-                    _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
-                }
+                //var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
+                //if (!indexed)
+                //{
+                //    _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
+                //}
 
-                var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
-                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
+                //var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
+                //await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
 
-                var resultDto = _mapper.Map<PermissionDto>(permission);
-                return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
+                result.Data = _mapper.Map<PermissionDto>(permission);
+                result.Message = Messages.GENERAL_OK;
+                result.Success = true;
+
+                _ = Task.WhenAll(
+                    IndexPermissionAsync(permission),
+                    SendKafkaMessageAsync("request", permission)
+                );
 
             }
             catch (Exception ex)
             {
+                result.Message = Messages.GENERAL_EXCEPTION;
                 _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
-                return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
-            }            
+            }
+            return result;
         }
 
         public async Task<Result<PermissionDto>> ModifyPermissionAsync(PermissionDto permissionDto)
         {
+            Result<PermissionDto> result = new();
             try
             {
-                var permission = await _unitOfWork.Permissions.GetByIdAsync(permissionDto.Id);
+                Permission permission = await _unitOfWork.Permissions.GetByIdAsync(permissionDto.Id);
                 if (permission == null)
                 {
-                    return Result<PermissionDto>.Fail(Messages.GENERAL_NOT_FOUND);
+                    result.Message = Messages.GENERAL_NOT_FOUND;
+                    return result;
                 }
 
                 _mapper.Map(permissionDto, permission);
@@ -80,22 +92,53 @@ namespace N5Challenge.Application.Services
                 _unitOfWork.Permissions.Update(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                await _elasticsearchService.UpdatePermissionAsync(permission);
+                result.Data = _mapper.Map<PermissionDto>(permission);
+                result.Message = Messages.GENERAL_OK;
+                result.Success = true;
+                //await _elasticsearchService.UpdatePermissionAsync(permission);
 
-                var kafkaMessage = new { Id = Guid.NewGuid(), Name = "modify", Permission = permission };
-                await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
+                //var kafkaMessage = new { Id = Guid.NewGuid(), Name = "modify", Permission = permission };
+                //await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
 
-                var resultDto = _mapper.Map<PermissionDto>(permission);
-                return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
+                _ = Task.WhenAll(
+                    UpdateElasticsearchAsync(permission),
+                    SendKafkaMessageAsync("modify", permission)
+                );
             }
             catch (Exception ex)
             {
+                result.Message = Messages.GENERAL_EXCEPTION;
                 _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
-                return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
             }
+            return result;
         }
+
+        public async Task<Result<PermissionDto>> GetPermissionByIdAsync(int id)
+        {
+            Result<PermissionDto> result = new();
+            try
+            {
+                var permission = await _unitOfWork.Permissions.GetByIdAsync(id);
+                if (permission == null)
+                {
+                    result.Message = Messages.GENERAL_NOT_FOUND;
+                    return result;
+                }
+                result.Data = _mapper.Map<PermissionDto>(permission);
+                result.Message = Messages.GENERAL_OK;
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Message = Messages.GENERAL_EXCEPTION;
+                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
+            }
+            return result;
+        }
+
         public async Task<Result<IEnumerable<PermissionDto>>> GetPermissionsAsync(string? searchTerm = null)
         {
+            Result<IEnumerable<PermissionDto>> result = new();
             try
             {
                 IEnumerable<Permission> permissions;
@@ -105,49 +148,70 @@ namespace N5Challenge.Application.Services
                 }
                 else
                 {
-                     permissions = await _elasticsearchService.GetAllPermissionsAsync();
+                    try
+                    {
+                        permissions = await _elasticsearchService.GetAllPermissionsAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error retrieving permissions from Elasticsearch. Falling back to database.");
+                        permissions = await _unitOfWork.Permissions.GetAllAsync();
+                    }
                 }
 
-                var kafkaMessage = new
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "get",
-                    Count = permissions.Count()
-                };
-                await _kafkaProducer.ProduceAsync(_kafkaTopic, "get_all", kafkaMessage);
+                result.Data = _mapper.Map<IEnumerable<PermissionDto>>(permissions);
+                result.Message = Messages.GENERAL_OK;
+                result.Success = true;
 
-                var resultDto = _mapper.Map<IEnumerable<PermissionDto>>(permissions);
-                return Result<IEnumerable<PermissionDto>>.Ok(resultDto, Messages.GENERAL_OK);
+                _ = SendKafkaMessageAsync("get", permissions.Count());
+
             }
             catch (Exception ex)
             {
+                result.Message = Messages.GENERAL_EXCEPTION;
                 _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
-                return Result<IEnumerable<PermissionDto>>.Fail(Messages.GENERAL_ERROR);
-            }            
+            }
+            return result;
         }
-
-        public async Task<Result<PermissionDto>> GetPermissionByIdAsync(int id)
+        #region Private Methods
+        private async Task IndexPermissionAsync(Permission permission)
         {
             try
             {
-                //var permission = await _unitOfWork.Permissions.GetByIdAsync(id);
-                var permission = await _elasticsearchService.GetPermissionAsync(id);
-                if (permission == null)
+                var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
+                if (!indexed)
                 {
-                    return Result<PermissionDto>.Fail(Messages.GENERAL_NOT_FOUND);
+                    _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
                 }
-                var resultDto = _mapper.Map<PermissionDto>(permission);
-
-                return Result<PermissionDto>.Ok(resultDto, Messages.GENERAL_OK);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, string.Concat(ex.Message, ex.InnerException?.Message));
-                return Result<PermissionDto>.Fail(Messages.GENERAL_ERROR);
+                _logger.LogError(ex, "Error indexing permission in Elasticsearch. ID: {PermissionId}", permission.Id);
             }
-            
         }
-
-        
+        private async Task SendKafkaMessageAsync(string operation, object data)
+        {
+            try
+            {
+                var kafkaMessage = new { Id = Guid.NewGuid(), Name = operation, Data = data };
+                await _kafkaProducer.ProduceAsync(_kafkaTopic, Guid.NewGuid().ToString(), kafkaMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending message to Kafka. Operation: {Operation}", operation);
+            }
+        }
+        private async Task UpdateElasticsearchAsync(Permission permission)
+        {
+            try
+            {
+                await _elasticsearchService.UpdatePermissionAsync(permission);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating permission in Elasticsearch. ID: {PermissionId}", permission.Id);
+            }
+        }
+        #endregion
     }
 }
