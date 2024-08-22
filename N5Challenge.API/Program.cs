@@ -67,6 +67,18 @@ namespace N5Challenge.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddCors(options =>
+            {
+                var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>();
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.WithOrigins(origins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+                });
+            });
+
             var app = builder.Build();
 
             // Apply migrations
@@ -93,7 +105,7 @@ namespace N5Challenge.API
                 });
             //}
 
-
+            app.UseCors();
 
             app.UseHttpsRedirection();
 
