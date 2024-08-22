@@ -27,7 +27,7 @@ namespace N5Challenge.API.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> ModifyPermission(int id, [FromBody] PermissionDto permissionDto)
+        public async Task<IActionResult> ModifyPermission(int id, [FromBody] PermissionUpdateDto permissionDto)
         {
             if (id != permissionDto.Id){ return BadRequest(); }
 

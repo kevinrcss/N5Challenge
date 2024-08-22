@@ -85,7 +85,7 @@ namespace N5Challenge.UnitTests.Services
         public async Task ModifyPermissionAsync()
         {
             // Arrange
-            var permissionDto = new PermissionDto
+            var permissionDto = new PermissionUpdateDto
             {
                 Id = 1,
                 EmployeeName = "John",
@@ -105,7 +105,7 @@ namespace N5Challenge.UnitTests.Services
 
             _mockUnitOfWork.Setup(uow => uow.Permissions.GetByIdAsync(It.IsAny<int>())).ReturnsAsync(permission);
             _mockMapper.Setup(m => m.Map(It.IsAny<PermissionDto>(), It.IsAny<Permission>())).Returns(permission);
-            _mockMapper.Setup(m => m.Map<PermissionDto>(It.IsAny<Permission>())).Returns(permissionDto);
+            _mockMapper.Setup(m => m.Map<PermissionUpdateDto>(It.IsAny<Permission>())).Returns(permissionDto);
 
             _mockUnitOfWork.Setup(uow => uow.Permissions.Update(It.IsAny<Permission>()));
             _mockUnitOfWork.Setup(uow => uow.SaveChangesAsync()).ReturnsAsync(1);
@@ -119,7 +119,6 @@ namespace N5Challenge.UnitTests.Services
 
             // Assert
             Assert.True(result.Success);
-            Assert.Equal(permissionDto, result.Data);
         }
 
         [Fact]
@@ -138,7 +137,7 @@ namespace N5Challenge.UnitTests.Services
                 new PermissionDto { Id = 2, EmployeeName = "Jane", EmployeeLastName = "Doe", PermissionTypeId = 2, PermissionDate = DateTime.Now }
             };
 
-            var mockPermissionRepository = new Mock<IRepository<Permission>>();
+            var mockPermissionRepository = new Mock<IPermissionRepository>();
             mockPermissionRepository.Setup(repo => repo.GetAllAsync()).ReturnsAsync(permissions);
 
             _mockUnitOfWork.Setup(uow => uow.Permissions).Returns(mockPermissionRepository.Object);

@@ -7,13 +7,15 @@ namespace N5Challenge.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly ApplicationDbContext _context;
-        public IRepository<Permission> _permissions;
+        //public IRepository<Permission> _permissions;
+        public IPermissionRepository _permissions;
         public IRepository<PermissionType> _permissionTypes;
         public UnitOfWork(ApplicationDbContext context)
         {
             _context = context;
         }
-        public IRepository<Permission> Permissions => _permissions ??= new Repository<Permission>(_context);
+        //public IRepository<Permission> Permissions => _permissions ??= new Repository<Permission>(_context);
+        public IPermissionRepository Permissions => _permissions ??= new PermissionRepository(_context);
 
         public IRepository<PermissionType> PermissionTypes => _permissionTypes ??= new Repository<PermissionType>(_context);
 

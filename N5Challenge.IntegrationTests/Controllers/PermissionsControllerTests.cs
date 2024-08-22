@@ -60,7 +60,7 @@ namespace N5Challenge.IntegrationTests.Controllers
         public async Task Modify()
         {
             // Arrange
-            var modifiedPermission = new PermissionDto
+            var modifiedPermission = new PermissionUpdateDto
             {
                 Id = 1,
                 EmployeeName = "Modified",

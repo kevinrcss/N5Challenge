@@ -48,15 +48,6 @@ namespace N5Challenge.Application.Services
                 await _unitOfWork.Permissions.AddAsync(permission);
                 await _unitOfWork.SaveChangesAsync();
 
-                //var indexed = await _elasticsearchService.IndexPermissionAsync(permission);
-                //if (!indexed)
-                //{
-                //    _logger.LogWarning("Failed to index permission in Elasticsearch. ID: {PermissionId}", permission.Id);
-                //}
-
-                //var kafkaMessage = new { Id = Guid.NewGuid(), Name = "request", Permission = permission };
-                //await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
-
                 result.Data = _mapper.Map<PermissionDto>(permission);
                 result.Message = Messages.GENERAL_OK;
                 result.Success = true;
@@ -75,7 +66,7 @@ namespace N5Challenge.Application.Services
             return result;
         }
 
-        public async Task<Result<PermissionDto>> ModifyPermissionAsync(PermissionDto permissionDto)
+        public async Task<Result<PermissionDto>> ModifyPermissionAsync(PermissionUpdateDto permissionDto)
         {
             Result<PermissionDto> result = new();
             try
@@ -95,10 +86,6 @@ namespace N5Challenge.Application.Services
                 result.Data = _mapper.Map<PermissionDto>(permission);
                 result.Message = Messages.GENERAL_OK;
                 result.Success = true;
-                //await _elasticsearchService.UpdatePermissionAsync(permission);
-
-                //var kafkaMessage = new { Id = Guid.NewGuid(), Name = "modify", Permission = permission };
-                //await _kafkaProducer.ProduceAsync(_kafkaTopic, permission.Id.ToString(), kafkaMessage);
 
                 _ = Task.WhenAll(
                     UpdateElasticsearchAsync(permission),
@@ -144,7 +131,7 @@ namespace N5Challenge.Application.Services
                 IEnumerable<Permission> permissions;
                 if (string.IsNullOrEmpty(searchTerm))
                 {
-                    permissions = await _unitOfWork.Permissions.GetAllAsync();
+                    permissions = await _unitOfWork.Permissions.GetAllWithTypesAsync();
                 }
                 else
                 {
@@ -173,6 +160,7 @@ namespace N5Challenge.Application.Services
             }
             return result;
         }
+
         #region Private Methods
         private async Task IndexPermissionAsync(Permission permission)
         {
